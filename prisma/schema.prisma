@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  email          String         @unique
+  username       String         @default("")
+  password       String         @default("")
+  role           UserRole       @default(USER)
+  userStatus     UserStatus     @default(ACTIVE)
+  fcmToken       String?        @default("")
+  dob            DateTime?
+  profileImage   String         @default("")
+  profileUrl     String?
+  expirationOtp  DateTime?
+  otp            Int?
+  isNotification Boolean        @default(true)
+  status         UserStatus     @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  notifications  Notification[] @relation("UserRelation")
+  Like           Like[]         @relation("UserLikes")
+  Review         Review[]
+
+  sentChats     Chat[]     @relation("ChatsSent")
+  receivedChats Chat[]     @relation("ChatsReceived")
+  sentRooms     Room[]     @relation("RoomsSent")
+  receivedRooms Room[]     @relation("RoomsReceived")
+  Withdraw      Withdraw[] @relation("UserWithdraws")
+  Card          Card[]     @relation("UserCards")
+
+  @@map("users")
+}
+
+model Agent {
+  id                     String          @id @default(auto()) @map("_id") @db.ObjectId
+  agentName              String          @default("")
+  role                   UserRole        @default(AGENT)
+  image                  String          @default("")
+  gender                 Gender          @default(MALE)
+  contactNumber          String          @default("")
+  agentArea              String          @default("")
+  socialLinks            String          @default("")
+  dashboardAccess        DashboardAccess @default(YES)
+  description            String          @default("")
+  NIDNumber              Int             @default(0)
+  email                  String          @default("")
+  address                String          @default("")
+  realStatelicenseNumber Int             @default(0)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  @@map("agents")
+}
+
+model Apartment {
+  id           String          @id @default(auto()) @map("_id") @db.ObjectId
+  image        String          @default("")
+  title        String          @default("")
+  location     String          @default("")
+  description  String          @default("")
+  price        Float           @default(0)
+  balcony      Float           @default(0)
+  livingRoom   Float           @default(0)
+  diningRoom   Float           @default(0)
+  kitchen      Float           @default(0)
+  lockSystem   LockSystem      @default(SMART)
+  propertyType PropertyType    @default(APARTMENT)
+  sqft         Float           @default(0)
+  bedrooms     Int             @default(0)
+  bathrooms    Int             @default(0)
+  garage       Int             @default(0)
+  buildYear    Int             @default(0)
+  yearBuilt    Int             @default(0)
+  status       ApartmentStatus @default(AVAILABLE)
+  latitude     Float           @default(0)
+  longitude    Float           @default(0)
+  likeCount    Int             @default(0)
+  reviewCount  Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  Like         Like[]          @relation("ApartmentLikes")
+
+  @@map("apartments")
+}
+
+model Withdraw {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  fullName      String   @default("")
+  number        String   @default("")
+  email         String   @default("")
+  NIDNumber     Int      @default(0)
+  TINNumber     Int      @default(0)
+  accountNumber String   @default("")
+  location      String   @default("")
+  amount        Float    @default(0)
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation("UserWithdraws", fields: [userId], references: [id])
+
+  @@map("withdraws")
+}
+
+model Card {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  cardNumber String   @default("")
+  cardHolder String   @default("")
+  expiryDate String   @default("")
+  cvv        String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation("UserCards", fields: [userId], references: [id])
+
+  @@map("cards")
+}
+
+model Like {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  apartmentId String   @db.ObjectId
+  createdAt   DateTime @default(now())
+
+  user      User      @relation("UserLikes", fields: [userId], references: [id])
+  apartment Apartment @relation("ApartmentLikes", fields: [apartmentId], references: [id])
+
+  @@map("likes")
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int      @default(0)
+  agentId   String   @db.ObjectId
+  userId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  // agent Agent @relation("AgentReviews", fields: [agentId], references: [id])
+
+  @@map("reviews")
+}
+
+// Web Socket
+
+model Chat {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderId   String   @db.ObjectId
+  receiverId String   @db.ObjectId
+  message    String
+  roomId     String   @db.ObjectId
+  images     String[]
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender   User @relation("ChatsSent", fields: [senderId], references: [id])
+  receiver User @relation("ChatsReceived", fields: [receiverId], references: [id])
+
+  room Room @relation(fields: [roomId], references: [id])
+
+  @@map("chats")
+}
+
+model Room {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderId   String   @db.ObjectId
+  receiverId String   @db.ObjectId
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  sender     User     @relation("RoomsSent", fields: [senderId], references: [id])
+  receiver   User     @relation("RoomsReceived", fields: [receiverId], references: [id])
+
+  chat Chat[]
+
+  @@map("rooms")
+}
+
+model PrivacyPolicy {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @default("")
+}
+
+model TermsAndConditions {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @default("")
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  title     String
+  body      String
+  data      String?  @default("")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation("UserRelation", fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
+  SUPER_ADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum ApartmentStatus {
+  ACTIVE
+  INACTIVE
+  SOLD
+  AVAILABLE
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  LEASE
+  COMMERCIAL
+  RESIDENTIAL
+  CONOSTRUCTION
+}
+
+enum LockSystem {
+  SMART
+  ANALOG
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum SocialLinks {
+  FACEBOOK
+  TWITTER
+  INSTAGRAM
+  LINKEDIN
+  YOUTUBE
+  WHATSAPP
+  TELEGRAM
+}
+
+enum DashboardAccess {
+  YES
+  NO
+}
