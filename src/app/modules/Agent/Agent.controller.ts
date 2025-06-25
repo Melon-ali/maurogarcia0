@@ -46,6 +46,18 @@ const getAgentList = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const blockAgent = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const status = req.body.status;
+  const result = await AgentService.blockAgent(id, status);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Agent blocked successfully",
+    data: result,
+  });
+});
+
 const getAgentById = catchAsync(async (req, res) => {
   const result = await AgentService.getByIdFromDb(req.params.id);
   sendResponse(res, {
@@ -99,6 +111,7 @@ const deleteAgent = catchAsync(async (req, res) => {
 export const AgentController = {
   createAgent,
   getAgentList,
+  blockAgent,
   getAgentById,
   updateAgent,
   deleteAgent,

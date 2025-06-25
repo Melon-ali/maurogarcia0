@@ -20,6 +20,8 @@ router.get("/", auth(), ApartmentController.getApartmentList);
 
 router.get("/dashboard", auth(), ApartmentController.getDashboardCount);
 
+router.put("/block/:id", auth(), ApartmentController.blockApartment);
+
 router.get("/:id", auth(), ApartmentController.getApartmentById);
 
 router.put(

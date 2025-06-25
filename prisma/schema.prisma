@@ -36,6 +36,7 @@ model User {
   Card          Card[]     @relation("UserCards")
 
   @@map("users")
+  Deposit Deposit[] @relation("UserDeposits")
 }
 
 model Agent {
@@ -53,6 +54,7 @@ model Agent {
   email                  String          @default("")
   address                String          @default("")
   realStatelicenseNumber Int             @default(0)
+  status                 AgentStatus     @default(ACTIVE)
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
 
@@ -108,6 +110,26 @@ model Withdraw {
   user User @relation("UserWithdraws", fields: [userId], references: [id])
 
   @@map("withdraws")
+}
+
+model Deposit {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  fullName      String   @default("")
+  number        String   @default("")
+  email         String   @default("")
+  NIDNumber     Int      @default(0)
+  TINNumber     Int      @default(0)
+  accountNumber String   @default("")
+  location      String   @default("")
+  amount        Float    @default(0)
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation("UserDeposits", fields: [userId], references: [id])
+
+  @@map("deposits")
 }
 
 model Card {
@@ -229,6 +251,11 @@ enum ApartmentStatus {
   INACTIVE
   SOLD
   AVAILABLE
+}
+
+enum AgentStatus {
+  ACTIVE
+  BLOCKED
 }
 
 enum PropertyType {

@@ -18,6 +18,8 @@ router.post(
 
 router.get("/", auth(), AgentController.getAgentList);
 
+router.put("/block/:id", auth(), AgentController.blockAgent);
+
 router.get("/:id", auth(), AgentController.getAgentById);
 
 router.put(

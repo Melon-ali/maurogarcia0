@@ -200,6 +200,20 @@ const getDashboardCount = async () => {
   };
 };
 
+const blockApartment = async (id: string, status: any) => {
+  const apartment = await prisma.apartment.findUnique({ where: { id } });
+  if (!apartment) {
+    throw new Error("apartment not found");
+  }
+  const result = await prisma.apartment.update({
+    where: { id: apartment.id },
+    data: {
+     status,
+    },
+  });
+  return result;
+}
+
 const getByIdFromDb = async (id: string) => {
   const result = await prisma.apartment.findUnique({ where: { id } });
   if (!result) {
@@ -236,6 +250,7 @@ export const ApartmentService = {
   createIntoDb,
   getListFromDb,
   getDashboardCount,
+  blockApartment,
   getByIdFromDb,
   updateIntoDb,
   deleteItemFromDb,

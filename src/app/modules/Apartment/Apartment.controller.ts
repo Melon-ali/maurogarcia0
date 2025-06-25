@@ -61,6 +61,18 @@ const getDashboardCount = catchAsync(async (req, res) => {
   });
 });
 
+const blockApartment = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const status = req.body.status;
+  const result = await ApartmentService.blockApartment(id, status);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Apartment blocked successfully",
+    data: result,
+  });
+});
+
 const getApartmentById = catchAsync(async (req, res) => {
   const result = await ApartmentService.getByIdFromDb(req.params.id);
   sendResponse(res, {
@@ -116,6 +128,7 @@ export const ApartmentController = {
   createApartment,
   getApartmentList,
   getDashboardCount,
+  blockApartment,
   getApartmentById,
   updateApartment,
   deleteApartment,

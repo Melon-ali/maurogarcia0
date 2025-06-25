@@ -7,7 +7,7 @@ import {
   IAgentFilterRequest,
   UpdateAgentInput,
 } from "./Agent.interface";
-import { agentFilterableFields, agentSearchableFields } from "./Agent.constant";
+import { agentSearchableFields } from "./Agent.constant";
 
 const createIntoDb = async (agentData?: IAgent) => {
   const { id, createdAt, updatedAt, ...rest } = agentData || {};
@@ -113,6 +113,20 @@ const getListFromDb = async (
   };
 };
 
+const blockAgent = async (id: string, status: any) => {
+  const agent = await prisma.agent.findUnique({ where: { id } });
+  if (!agent) {
+    throw new Error("agent not found");
+  }
+  const result = await prisma.agent.update({
+    where: { id: agent.id },
+    data: {
+     status,
+    },
+  });
+  return result;
+}
+
 const getByIdFromDb = async (id: string) => {
   const result = await prisma.agent.findUnique({ where: { id } });
   if (!result) {
@@ -147,6 +161,7 @@ const deleteItemFromDb = async (id: string) => {
 export const AgentService = {
   createIntoDb,
   getListFromDb,
+  blockAgent,
   getByIdFromDb,
   updateIntoDb,
   deleteItemFromDb,
