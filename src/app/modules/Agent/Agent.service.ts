@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole, UserStatus } from "@prisma/client";
 import { paginationHelper } from "../../../helpars/paginationHelper";
 import { IPaginationOptions } from "../../../interfaces/paginations";
 import prisma from "../../../shared/prisma";
@@ -7,49 +7,106 @@ import {
   IAgentFilterRequest,
   UpdateAgentInput,
 } from "./Agent.interface";
+import * as bcrypt from "bcrypt";
 import { agentSearchableFields } from "./Agent.constant";
+import ApiError from "../../../errors/ApiErrors";
+import httpStatus from "http-status";
+import { fileUploader } from "../../../helpars/fileUploader";
+import config from "../../../config";
 
-const createIntoDb = async (agentData?: IAgent) => {
-  const { id, createdAt, updatedAt, ...rest } = agentData || {};
+const createAgentFormDb = async (req: any) => {
+  let parsedData;
 
-  const result = await prisma.agent.create({
+  // auto detect request format
+  if (typeof req.body === "string") {
+    parsedData = JSON.parse(req.body);
+  } else if (req.body?.data && typeof req.body.data === "string") {
+    parsedData = JSON.parse(req.body.data);
+  } else if (typeof req.body === "object") {
+    parsedData = req.body;
+  } else {
+    throw new Error("Invalid request body format.");
+  }
+
+  // handle file
+  let image = "";
+  if (req.files) {
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const file = files?.file?.[0];
+    if (file) {
+      const uploadResult = await fileUploader.uploadToCloudinary(file);
+      image = uploadResult?.Location || "";
+    }
+  }
+
+  const hashedPassword = await bcrypt.hash(
+    parsedData.password,
+    Number(config.bcrypt_salt_rounds)
+  );
+
+  const user = await prisma.user.create({
     data: {
-      agentName: rest.agentName ?? "",
-      role: "AGENT", // default and fixed
-      image: rest.image ?? "",
-      gender: rest.gender ?? "MALE",
-      contactNumber: rest.contactNumber ?? "",
-      agentArea: rest.agentArea ?? "",
-      socialLinks: rest.socialLinks ?? "FACEBOOK",
-      dashboardAccess: rest.dashboardAccess ?? "YES",
-      description: rest.description ?? "",
-      NIDNumber: rest.NIDNumber ?? 0,
-      email: rest.email ?? "",
-      address: rest.address ?? "",
-      realStatelicenseNumber: rest.realStatelicenseNumber ?? 0,
-    },
-    select: {
-      id: true,
-      agentName: true,
-      role: true,
-      image: true,
-      gender: true,
-      contactNumber: true,
-      agentArea: true,
-      socialLinks: true,
-      dashboardAccess: true,
-      description: true,
-      NIDNumber: true,
-      email: true,
-      address: true,
-      realStatelicenseNumber: true,
-      createdAt: true,
-      updatedAt: true,
+      email: parsedData.email,
+      username: parsedData.username,
+      password: hashedPassword,
+      role: UserRole.AGENT,
+      profileImage: image,
+      profileUrl: parsedData.profileUrl,
+      status: UserStatus.ACTIVE,
+      isNotification: true,
     },
   });
 
-  return result;
+  const agent = await prisma.agent.create({
+    data: {
+      userId: user.id,
+      gender: parsedData.gender,
+      contactNumber: parsedData.contactNumber,
+      assignedArea: parsedData.assignedArea,
+      socialLinks: parsedData.socialLinks,
+      image: image,
+      dashboard: parsedData.dashboard,
+      allAgents: parsedData.allAgents,
+      allClients: parsedData.allClients,
+      allProperties: parsedData.allProperties,
+      withdraw: parsedData.withdraw,
+      return: parsedData.return,
+      message: parsedData.message,
+      profile: parsedData.profile,
+      description: parsedData.description,
+      NIDNumber: parsedData.NIDNumber,
+      address: parsedData.address,
+      realStatelicenseNumber: parsedData.realStatelicenseNumber,
+    },
+  });
+
+  return {
+    id: user.id,
+    agentId: agent.id,
+    userName: user.username,
+    email: user.email,
+    gender: agent.gender,
+    contactNumber: agent.contactNumber,
+    assignedArea: agent.assignedArea,
+    socialLinks: agent.socialLinks,
+    image: agent.image,
+    dashboard: agent.dashboard,
+    allAgents: agent.allAgents,
+    allClients: agent.allClients,
+    allProperties: agent.allProperties,
+    withdraw: agent.withdraw,
+    return: agent.return,
+    message: agent.message,
+    profile: agent.profile,
+    description: agent.description,
+    NIDNumber: agent.NIDNumber,
+    address: agent.address,
+    realStatelicenseNumber: agent.realStatelicenseNumber,
+    createdAt: agent.createdAt,
+    updatedAt: agent.updatedAt
+  };
 };
+
 
 const getListFromDb = async (
   options: IPaginationOptions,
@@ -127,6 +184,22 @@ const blockAgent = async (id: string, status: any) => {
   return result;
 }
 
+// const toggleAllAgentsAccess = async () => {
+//   const allAgents = await prisma.agent.findMany();
+
+//   const updatedAgents = await Promise.all(
+//     allAgents.map(agent =>
+//       prisma.agent.update({
+//         where: { id: agent.id },
+//         data: { isAccess: !agent.isAccess },
+//       })
+//     )
+//   );
+
+//   return updatedAgents;
+// };
+
+
 const getByIdFromDb = async (id: string) => {
   const result = await prisma.agent.findUnique({ where: { id } });
   if (!result) {
@@ -135,20 +208,113 @@ const getByIdFromDb = async (id: string) => {
   return result;
 };
 
-const updateIntoDb = async (
-  id: string,
-  fileUrl: string | undefined,
-  agentsData: UpdateAgentInput
-) => {
+const updateIntoDb = async (req: any) => {
+  const id = req.params.id;
+  const rawData = req.body.data;
+  const fileUrl = req.body.fileUrl;
+
+  // Parse JSON string if necessary
+  let parsedData: any;
+  if (typeof rawData === "string") {
+    parsedData = JSON.parse(rawData);
+  } else {
+    parsedData = rawData;
+  }
+
+  const existingAgent = await prisma.agent.findUnique({
+    where: { id },
+  });
+  if (!existingAgent) {
+    throw new ApiError(404, "Agent not found");
+  }
+
+  let image: string | undefined = undefined;
+
+  if (fileUrl) {
+    const uploadResult = await fileUploader.uploadToCloudinary(fileUrl);
+    image = uploadResult?.Location;
+  }
+
+  // Build Agent update fields
+  const agentUpdateData: Prisma.AgentUpdateInput = {
+    ...(parsedData.gender && { gender: { set: parsedData.gender } }),
+    ...(parsedData.status && { status: { set: parsedData.status } }),
+    contactNumber: parsedData.contactNumber,
+    assignedArea: parsedData.assignedArea,
+    socialLinks: parsedData.socialLinks,
+    description: parsedData.description,
+    NIDNumber: parsedData.NIDNumber,
+    address: parsedData.address,
+    realStatelicenseNumber: parsedData.realStatelicenseNumber,
+    dashboard: parsedData.dashboard,
+    allAgents: parsedData.allAgents,
+    allClients: parsedData.allClients,
+    allProperties: parsedData.allProperties,
+    withdraw: parsedData.withdraw,
+    return: parsedData.return,
+    message: parsedData.message,
+    profile: parsedData.profile,
+    ...(image && { image }),
+  };
+
+  // If any user fields are included
+  if (
+    parsedData.email ||
+    parsedData.username ||
+    parsedData.password
+  ) {
+    agentUpdateData.user = {
+      update: {
+        ...(parsedData.email && { email: parsedData.email }),
+        ...(parsedData.username && { username: parsedData.username }),
+        ...(parsedData.password && {
+          password: await bcrypt.hash(
+            parsedData.password,
+            Number(config.bcrypt_salt_rounds)
+          ),
+        }),
+      },
+    };
+  }
+
   const result = await prisma.agent.update({
     where: { id },
-    data: {
-      ...agentsData,
-      ...(fileUrl && { image: fileUrl }), // Only set image if fileUrl exists
+    data: agentUpdateData,
+    select: {
+      id: true,
+      gender: true,
+      contactNumber: true,
+      assignedArea: true,
+      socialLinks: true,
+      image: true,
+      description: true,
+      NIDNumber: true,
+      address: true,
+      realStatelicenseNumber: true,
+      status: true,
+      dashboard: true,
+      allAgents: true,
+      allClients: true,
+      allProperties: true,
+      withdraw: true,
+      return: true,
+      message: true,
+      profile: true,
+      createdAt: true,
+      updatedAt: true,
+      user: {
+        select: {
+          email: true,
+          username: true,
+        },
+      },
     },
   });
+
   return result;
 };
+
+
 
 const deleteItemFromDb = async (id: string) => {
   const deletedItem = await prisma.agent.delete({
@@ -159,9 +325,10 @@ const deleteItemFromDb = async (id: string) => {
   return deletedItem;
 };
 export const AgentService = {
-  createIntoDb,
+  createAgentFormDb,
   getListFromDb,
   blockAgent,
+  // toggleAllAgentsAccess,
   getByIdFromDb,
   updateIntoDb,
   deleteItemFromDb,

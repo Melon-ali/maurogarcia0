@@ -54,17 +54,8 @@ const createUserIntoDb = async (payload: User) => {
     },
   });
 
-  const accessToken = jwtHelpers.createToken(
-    {
-      id: result.id,
-      email: result.email,
-      role: result.role,
-    },
-    config.jwt.jwt_secret as string,
-    config.jwt.expires_in as string // or number
-  );
-
-  return { token: accessToken, result };
+  return result; 
+  
 };
 
 // reterive all users from the database also searcing anf filetering
@@ -168,13 +159,14 @@ const updateProfile = async (req: Request) => {
 
   const result = await prisma.user.update({
     where: {
-      id: existingUser.id, // Ensure `existingUser.id` is valid and exists
+      id: existingUser.id,
     },
     data: {
       username: parseData.username || existingUser.username,
-      dob: parseData.dob || existingUser.dob,
+      dob: parseData.dob ? new Date(parseData.dob) : existingUser.dob,
       email: parseData.email || existingUser.email,
       profileImage: image || existingUser.profileImage,
+      role: parseData.role || existingUser.role,
       updatedAt: new Date(),
     },
     select: {
@@ -182,6 +174,7 @@ const updateProfile = async (req: Request) => {
       username: true,
       email: true,
       profileImage: true,
+      role: true,
       dob: true,
       isNotification: true,
     },

@@ -34,29 +34,39 @@ model User {
   receivedRooms Room[]     @relation("RoomsReceived")
   Withdraw      Withdraw[] @relation("UserWithdraws")
   Card          Card[]     @relation("UserCards")
+  Deposit       Deposit[]  @relation("UserDeposits")
+  Agent         Agent[]    @relation("AgentRelation")
 
   @@map("users")
-  Deposit Deposit[] @relation("UserDeposits")
 }
 
 model Agent {
-  id                     String          @id @default(auto()) @map("_id") @db.ObjectId
-  agentName              String          @default("")
-  role                   UserRole        @default(AGENT)
-  image                  String          @default("")
-  gender                 Gender          @default(MALE)
-  contactNumber          String          @default("")
-  agentArea              String          @default("")
-  socialLinks            String          @default("")
-  dashboardAccess        DashboardAccess @default(YES)
-  description            String          @default("")
-  NIDNumber              Int             @default(0)
-  email                  String          @default("")
-  address                String          @default("")
-  realStatelicenseNumber Int             @default(0)
-  status                 AgentStatus     @default(ACTIVE)
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  id                     String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId                 String      @db.ObjectId
+  gender                 Gender      @default(MALE)
+  contactNumber          String      @default("")
+  assignedArea           String      @default("")
+  socialLinks            Json?
+  image                  String      @default("")
+  description            String      @default("")
+  NIDNumber              Int         @default(0)
+  address                String      @default("")
+  realStatelicenseNumber Int         @default(0)
+  status                 AgentStatus @default(ACTIVE)
+
+  dashboard     Boolean @default(false)
+  allAgents     Boolean @default(false)
+  allClients    Boolean @default(false)
+  allProperties Boolean @default(false)
+  withdraw      Boolean @default(false)
+  return        Boolean @default(false)
+  message       Boolean @default(false)
+  profile       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation("AgentRelation", fields: [userId], references: [id])
 
   @@map("agents")
 }
@@ -74,6 +84,7 @@ model Apartment {
   kitchen      Float           @default(0)
   lockSystem   LockSystem      @default(SMART)
   propertyType PropertyType    @default(APARTMENT)
+  isAccess     Boolean         @default(true)
   sqft         Float           @default(0)
   bedrooms     Int             @default(0)
   bathrooms    Int             @default(0)
@@ -104,6 +115,7 @@ model Withdraw {
   location      String   @default("")
   amount        Float    @default(0)
   status        String   @default("PENDING")
+  isAccess      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -124,6 +136,7 @@ model Deposit {
   location      String   @default("")
   amount        Float    @default(0)
   status        String   @default("PENDING")
+  isAccess      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -141,6 +154,7 @@ model Card {
   cvv        String   @default("")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  isAccess   Boolean  @default(true)
 
   user User @relation("UserCards", fields: [userId], references: [id])
 
@@ -186,8 +200,9 @@ model Chat {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  sender   User @relation("ChatsSent", fields: [senderId], references: [id])
-  receiver User @relation("ChatsReceived", fields: [receiverId], references: [id])
+  sender   User    @relation("ChatsSent", fields: [senderId], references: [id])
+  receiver User    @relation("ChatsReceived", fields: [receiverId], references: [id])
+  isAccess Boolean @default(true)
 
   room Room @relation(fields: [roomId], references: [id])
 
@@ -202,6 +217,7 @@ model Room {
   updatedAt  DateTime @updatedAt
   sender     User     @relation("RoomsSent", fields: [senderId], references: [id])
   receiver   User     @relation("RoomsReceived", fields: [receiverId], references: [id])
+  isAccess   Boolean  @default(true)
 
   chat Chat[]
 
@@ -253,11 +269,6 @@ enum ApartmentStatus {
   AVAILABLE
 }
 
-enum AgentStatus {
-  ACTIVE
-  BLOCKED
-}
-
 enum PropertyType {
   APARTMENT
   HOUSE
@@ -265,6 +276,12 @@ enum PropertyType {
   COMMERCIAL
   RESIDENTIAL
   CONOSTRUCTION
+}
+
+enum AgentStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
 }
 
 enum LockSystem {

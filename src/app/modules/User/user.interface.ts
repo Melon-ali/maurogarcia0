@@ -8,6 +8,7 @@ export interface IUser {
   location?: string;    // ✅ New
   password: string;
   role: UserRole;
+  dob: string;
   profession: string;
   promoCode: string;
   status: UserStatus;

@@ -16,22 +16,22 @@ router.post(
   ApartmentController.createApartment
 );
 
-router.get("/", auth(), ApartmentController.getApartmentList);
+router.get("/", auth(UserRole.SUPER_ADMIN), ApartmentController.getApartmentList);
 
 router.get("/dashboard", auth(), ApartmentController.getDashboardCount);
 
-router.put("/block/:id", auth(), ApartmentController.blockApartment);
+router.put("/block/:id", auth(UserRole.SUPER_ADMIN), ApartmentController.blockApartment);
 
 router.get("/:id", auth(), ApartmentController.getApartmentById);
 
 router.put(
   "/:id",
   fileUploader.uploadApartmentImages,
-  auth(),
+  auth(UserRole.SUPER_ADMIN),
   // validateRequest(ApartmentValidation.updateSchema),
   ApartmentController.updateApartment
 );
 
-router.delete("/:id", auth(), ApartmentController.deleteApartment);
+router.delete("/:id", auth(UserRole.SUPER_ADMIN), ApartmentController.deleteApartment);
 
 export const ApartmentRoutes = router;

@@ -53,7 +53,8 @@ const uploadMultipleImage = upload.fields([{ name: "images", maxCount: 15 }]);
 // Upload profile and banner images
 const uploadApartmentImages = upload.fields([
   { name: "text", maxCount: 5 },
-  { name: "file", maxCount: 15 },
+  { name: "file", maxCount: 50 },
+  { name: "image", maxCount: 1 },
 ]);
 
 // ✅ Fixed Cloudinary Upload (Now supports buffer)

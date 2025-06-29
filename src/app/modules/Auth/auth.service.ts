@@ -4,7 +4,7 @@ import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import prisma from "../../../shared/prisma";
 import * as bcrypt from "bcrypt";
 import ApiError from "../../../errors/ApiErrors";
-import { UserStatus } from "@prisma/client";
+import { UserRole, UserStatus } from "@prisma/client";
 import httpStatus from "http-status";
 import crypto from "crypto";
 import { emailSender } from "../../../shared/emailSender";
@@ -41,6 +41,48 @@ const loginUser = async (payload: { email: string; password: string, fcmToken?:s
       },
     });
   }
+  
+  if(userData.role === UserRole.AGENT){
+    const agent = await prisma.agent.findFirst({
+      where: {
+        userId: userData.id,
+      },
+      select: {
+        id: true,
+        dashboard: true,
+        allAgents: true,
+        allClients: true,
+        allProperties: true,
+        withdraw: true,
+        return: true,
+        message: true,
+        profile: true,
+      }
+    })
+    if(!agent){
+      throw new ApiError(httpStatus.NOT_FOUND, "Agent not found");
+    }
+    const accessToken = jwtHelpers.createToken(
+    {
+      id: userData.id,
+      email: userData.email,
+      role: userData.role,
+      agentId : agent.id,
+      dashboard: agent.dashboard,
+      allAgents: agent.allAgents,
+      allClients: agent.allClients,
+      allProperties: agent.allProperties,
+      withdraw: agent.withdraw,
+      return: agent.return,
+      message: agent.message,
+      profile: agent.profile,
+      
+    },
+    config.jwt.jwt_secret as string,
+    config.jwt.expires_in as string // or number
+  );
+  return { token: accessToken, role: userData.role, userId: userData.id }
+}else{
   const accessToken = jwtHelpers.createToken(
     {
       id: userData.id,
@@ -50,9 +92,8 @@ const loginUser = async (payload: { email: string; password: string, fcmToken?:s
     config.jwt.jwt_secret as string,
     config.jwt.expires_in as string // or number
   );
-  
-
   return { token: accessToken, role: userData.role, userId: userData.id };
+}
 };
 
 // get user profile

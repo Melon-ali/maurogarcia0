@@ -2,13 +2,24 @@ import httpStatus from 'http-status';
 import { CardService } from './Card.service';
 import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
+import { Request, Response } from 'express';
 
-const createCard = catchAsync(async (req, res) => {
-  const result = await CardService.createIntoDb(req.body);
+const createCard = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  const cardData = {
+    userId, 
+    cardNumber: req.body.cardNumber,
+    cardHolder: req.body.cardHolder,
+    expiryDate: req.body.expiryDate,
+    cvv: req.body.cvv,
+  };
+
+  const result = await CardService.createIntoDb(cardData);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: 'Card created successfully',
+    message: "Card created successfully",
     data: result,
   });
 });

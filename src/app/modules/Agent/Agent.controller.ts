@@ -10,28 +10,16 @@ import pick from "../../../shared/pick";
 import { agentFilterableFields } from "./Agent.constant";
 
 const createAgent = catchAsync(async (req: Request, res: Response) => {
-  const agentData: IAgent = JSON.parse(req.body.text);
+  const agent = await AgentService.createAgentFormDb(req as any);
 
-  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const file = files?.file?.[0];
-
-  if (!file) {
-    throw new ApiError(400, "No Agent Image Uploaded");
-  }
-
-  const uploadResult = await fileUploader.uploadToCloudinary(file);
-  const fileUrl = uploadResult?.Location;
-
-  agentData.image = fileUrl;
-
-  const agents = await AgentService.createIntoDb(agentData);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
     message: "Agent created successfully",
-    data: agents,
+    data: agent,
   });
 });
+
 
 const getAgentList = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ["limit", "page"]);
@@ -58,6 +46,16 @@ const blockAgent = catchAsync(async (req, res) => {
   });
 });
 
+// const toggleAllAgentsAccess = catchAsync(async (req, res) => {
+//   const result = await AgentService.toggleAllAgentsAccess();
+//   sendResponse(res, {
+//     statusCode: httpStatus.OK,
+//     success: true,
+//     message: "All agents access toggled successfully",
+//     data: result,
+//   });
+// });
+
 const getAgentById = catchAsync(async (req, res) => {
   const result = await AgentService.getByIdFromDb(req.params.id);
   sendResponse(res, {
@@ -69,34 +67,18 @@ const getAgentById = catchAsync(async (req, res) => {
 });
 
 const updateAgent = catchAsync(async (req, res) => {
+  
+  const updatedAgent = await AgentService.updateIntoDb(req as any);
 
-  const { id } = req.params;
-  
-    // Parse apartment update data sent as JSON string under `text` field
-    const agentData: UpdateAgentInput = JSON.parse(req.body.text || "{}");
-  
-    // Get uploaded file (Multer stores it in `req.files`)
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-    const file = files?.profile?.[0];
-  
-    let fileUrl: string | undefined;
-  
-    // Upload file if exists
-    if (file) {
-      const uploadResult = await fileUploader.uploadToDigitalOcean(file);
-      fileUrl = uploadResult?.Location;
-    }
-  
-
-  const result = await AgentService.updateIntoDb(id, fileUrl, agentData);
-  
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Agent updated successfully",
-    data: result,
+    data: updatedAgent,
   });
 });
+
+
 
 const deleteAgent = catchAsync(async (req, res) => {
   const result = await AgentService.deleteItemFromDb(req.params.id);
@@ -112,6 +94,7 @@ export const AgentController = {
   createAgent,
   getAgentList,
   blockAgent,
+  // toggleAllAgentsAccess,
   getAgentById,
   updateAgent,
   deleteAgent,

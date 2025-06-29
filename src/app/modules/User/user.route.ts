@@ -15,27 +15,33 @@ router.post(
   userController.createUser
 );
 // *!get all  user
-router.get("/", auth(UserRole.SUPER_ADMIN, UserRole.USER), userController.getUsers);
+router.get(
+  "/",
+  auth(UserRole.SUPER_ADMIN, UserRole.USER),
+  userController.getUsers
+);
 
 // *!profile user
 router.put(
   "/profile",
   // validateRequest(UserValidation.userUpdateSchema),
-  
+
   fileUploader.uploadApartmentImages,
   auth(),
   userController.updateProfile
 );
 
 // *!update User Status
-router.put("/user-status/:id", auth(UserRole.SUPER_ADMIN), userController.restictedUser);
+router.put(
+  "/user-status/:id",
+  auth(UserRole.SUPER_ADMIN),
+  userController.restictedUser
+);
 
 // *!update Notifiaction Status
 router.put("/notification", auth(), userController.changeNotificationStatus);
 
 // *!update  user
 router.put("/:id", userController.updateUser);
-
-
 
 export const userRoutes = router;

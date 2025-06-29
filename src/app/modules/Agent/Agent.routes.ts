@@ -16,20 +16,22 @@ router.post(
   AgentController.createAgent
 );
 
-router.get("/", auth(), AgentController.getAgentList);
+router.get("/", auth(UserRole.SUPER_ADMIN), AgentController.getAgentList);
 
-router.put("/block/:id", auth(), AgentController.blockAgent);
+// router.put("/toggle-all-agents-access", auth(UserRole.SUPER_ADMIN), AgentController.toggleAllAgentsAccess);
+
+router.put("/block/:id", auth(UserRole.SUPER_ADMIN), AgentController.blockAgent);
 
 router.get("/:id", auth(), AgentController.getAgentById);
 
 router.put(
   "/:id",
   fileUploader.uploadApartmentImages,
-  auth(),
+  auth(UserRole.SUPER_ADMIN),
   //   validateRequest(AgentValidation.updateSchema),
   AgentController.updateAgent
 );
 
-router.delete("/:id", auth(), AgentController.deleteAgent);
+router.delete("/:id", auth(UserRole.SUPER_ADMIN), AgentController.deleteAgent);
 
 export const AgentRoutes = router;
