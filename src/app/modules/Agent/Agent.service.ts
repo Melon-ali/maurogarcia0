@@ -29,7 +29,7 @@ const createAgentFormDb = async (req: any) => {
   }
 
   // handle file
-  let image = "";
+  let image = ""; 
   if (req.files) {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const file = files?.file?.[0];
@@ -103,10 +103,9 @@ const createAgentFormDb = async (req: any) => {
     address: agent.address,
     realStatelicenseNumber: agent.realStatelicenseNumber,
     createdAt: agent.createdAt,
-    updatedAt: agent.updatedAt
+    updatedAt: agent.updatedAt,
   };
 };
-
 
 const getListFromDb = async (
   options: IPaginationOptions,
@@ -178,11 +177,11 @@ const blockAgent = async (id: string, status: any) => {
   const result = await prisma.agent.update({
     where: { id: agent.id },
     data: {
-     status,
+      status,
     },
   });
   return result;
-}
+};
 
 // const toggleAllAgentsAccess = async () => {
 //   const allAgents = await prisma.agent.findMany();
@@ -199,7 +198,6 @@ const blockAgent = async (id: string, status: any) => {
 //   return updatedAgents;
 // };
 
-
 const getByIdFromDb = async (id: string) => {
   const result = await prisma.agent.findUnique({ where: { id } });
   if (!result) {
@@ -211,7 +209,6 @@ const getByIdFromDb = async (id: string) => {
 const updateIntoDb = async (req: any) => {
   const id = req.params.id;
   const rawData = req.body.data;
-  const fileUrl = req.body.fileUrl;
 
   // Parse JSON string if necessary
   let parsedData: any;
@@ -228,11 +225,15 @@ const updateIntoDb = async (req: any) => {
     throw new ApiError(404, "Agent not found");
   }
 
-  let image: string | undefined = undefined;
-
-  if (fileUrl) {
-    const uploadResult = await fileUploader.uploadToCloudinary(fileUrl);
-    image = uploadResult?.Location;
+  // handle file
+  let image = "";
+  if (req.files) {
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const file = files?.file?.[0];
+    if (file) {
+      const uploadResult = await fileUploader.uploadToCloudinary(file);
+      image = uploadResult?.Location || "";
+    }
   }
 
   // Build Agent update fields
@@ -258,11 +259,7 @@ const updateIntoDb = async (req: any) => {
   };
 
   // If any user fields are included
-  if (
-    parsedData.email ||
-    parsedData.username ||
-    parsedData.password
-  ) {
+  if (parsedData.email || parsedData.username || parsedData.password) {
     agentUpdateData.user = {
       update: {
         ...(parsedData.email && { email: parsedData.email }),
@@ -313,8 +310,6 @@ const updateIntoDb = async (req: any) => {
 
   return result;
 };
-
-
 
 const deleteItemFromDb = async (id: string) => {
   const deletedItem = await prisma.agent.delete({

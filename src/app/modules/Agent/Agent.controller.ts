@@ -2,9 +2,6 @@ import httpStatus from "http-status";
 import { AgentService } from "./Agent.service";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
-import { IAgent, UpdateAgentInput } from "./Agent.interface";
-import ApiError from "../../../errors/ApiErrors";
-import { fileUploader } from "../../../helpars/fileUploader";
 import { Request, Response } from "express";
 import pick from "../../../shared/pick";
 import { agentFilterableFields } from "./Agent.constant";
@@ -25,6 +22,7 @@ const getAgentList = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ["limit", "page"]);
   const filters = pick(req.query, agentFilterableFields);
   const agents = await AgentService.getListFromDb( options, filters);
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -38,6 +36,7 @@ const blockAgent = catchAsync(async (req, res) => {
   const { id } = req.params;
   const status = req.body.status;
   const result = await AgentService.blockAgent(id, status);
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -58,6 +57,7 @@ const blockAgent = catchAsync(async (req, res) => {
 
 const getAgentById = catchAsync(async (req, res) => {
   const result = await AgentService.getByIdFromDb(req.params.id);
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -82,6 +82,7 @@ const updateAgent = catchAsync(async (req, res) => {
 
 const deleteAgent = catchAsync(async (req, res) => {
   const result = await AgentService.deleteItemFromDb(req.params.id);
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
